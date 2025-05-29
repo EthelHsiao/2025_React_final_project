@@ -6,6 +6,8 @@ import Header from './components/layout/Header';
 import type { Musician } from './types';
 // import './styles/index.css'; // Tailwind CSS is imported in main.tsx via index.css
 
+const baseRouterPath = import.meta.env.BASE_URL;
+
 function App() {
   const [musicians, setMusicians] = useState<Musician[]>(() => {
     const savedMusicians = localStorage.getItem('musicians');
@@ -38,7 +40,7 @@ function App() {
   };
 
   return (
-    <Router>
+    <Router basename={baseRouterPath}>
       {/* Apply global background, text color, and font family */}
       <div className="app-container bg-background text-text-main font-sans min-h-screen flex flex-col">
         <Header />

@@ -160,6 +160,9 @@ interface RecommendedSongDetail {
   transpositionResult: TranspositionResult;
 }
 
+const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const songDataUrl = `${baseUrl}song_dataset.json`.replace(/\/\//g, '/'); // 確保不會有雙斜線
+
 const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
   const [bandSlots, setBandSlots] = useState<BandMemberSlot[]>(() => {
     const storedBandJson = localStorage.getItem(LOCAL_STORAGE_BAND_KEY);
@@ -203,15 +206,15 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
       setSongsLoading(true);
       setSongsError(null);
       try {
-        const response = await fetch('/song_dataset.json');
+        const response = await fetch(songDataUrl);
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status} fetching ${songDataUrl}`);
         }
         const data: SongDataEntry[] = await response.json();
         setAllSongs(data);
       } catch (error) {
         console.error("Error fetching songs:", error);
-        setSongsError("無法載入歌曲資料。請確認 song_dataset.json 檔案位於 public 資料夾中且格式正確。");
+        setSongsError(`無法載入歌曲資料 (${(error as Error).message})。請確認 song_dataset.json 檔案位於 public 資料夾中且格式正確。`);
       }
       setSongsLoading(false);
     };
