@@ -1,0 +1,116 @@
+html, body, #root, .app-container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+html {
+  /* To ensure box-sizing is inherited by all elements */
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+:root {
+  --primary-color: #c0392b; /* 深紅色，符合圖片風格 */
+  --secondary-color: #2c3e50; /* 深藍灰色 */
+  --tertiary-color: #8e44ad; /* 紫色，可選的強調色 */
+  --background-color: #f4f5f7; /* Slightly cooler light gray */
+  --card-background: #ffffff; /* 卡片背景 - 白色 */
+  --card-slot-background: #e8e1e1; /* 卡槽背景色，類似圖片中的淡粉色 */
+  --text-color: #34495e; /* Darker text for better contrast */
+  --light-text-color: #f8f9fa; /* 淺色文字，用於深色背景 */
+  --border-color: #dfe4ea; /* Softer border color */
+  --error-color: #e74c3c; /* 錯誤提示色 */
+  --success-color: #2ecc71; /* 成功提示色 */
+
+  --header-height: 70px; /* Increased header height */
+  --font-family-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family-headings: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, more diffused shadow */
+  --box-shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+  --input-focus-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+}
+
+body {
+  font-family: var(--font-family-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensure it takes at least full viewport height */
+}
+
+.main-content {
+  flex-grow: 1;
+  /* padding: 20px; Let individual pages/components handle their main padding */
+  width: 100%; /* Takes full width from app-container */
+}
+
+/* General Container for pages - to be used by page components */
+.page-container {
+  padding: 25px;
+  max-width: 1600px; /* Max width for page content area */
+  margin: 0 auto; /* Center the page content area */
+  width: 100%;
+}
+
+/* 清除預設樣式 */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: var(--primary-color);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #a5281b; /* Darker primary for hover */
+  text-decoration: none; /* Keep no underline usually */
+}
+
+/* 通用容器樣式 */
+.container {
+  padding: 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 20px;
+}
+
+/* 標題樣式 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-headings);
+  color: var(--secondary-color);
+  margin-top: 0;
+  font-weight: 600; /* Bolder headings */
+}
+
+/* 用於隱藏螢幕閱讀器不可見內容 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+} 
