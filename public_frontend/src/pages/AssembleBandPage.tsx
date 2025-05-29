@@ -147,6 +147,12 @@ const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusic
   );
 };
 
+// Defining a type for recommended song details
+interface RecommendedSongDetail {
+  song: SongDataEntry;
+  transpositionResult: TranspositionResult;
+}
+
 const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
   const [bandSlots, setBandSlots] = useState<BandMemberSlot[]>(() => {
     const storedBandJson = localStorage.getItem(LOCAL_STORAGE_BAND_KEY);
@@ -175,6 +181,8 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
   const [songsLoading, setSongsLoading] = useState<boolean>(true);
   const [songsError, setSongsError] = useState<string | null>(null);
 
+  const [recommendedSongDetails, setRecommendedSongDetails] = useState<RecommendedSongDetail[]>([]);
+
   useEffect(() => {
     const storableBand: StoredBandSlot[] = bandSlots.map(bs => ({
       slotDefinitionId: bs.slotDefinition.id,
@@ -202,6 +210,81 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
     };
     fetchSongs();
   }, []);
+
+  useEffect(() => {
+    if (songsLoading || allSongs.length === 0) {
+      setRecommendedSongDetails([]);
+      return;
+    }
+
+    const vocalistSlot = bandSlots.find(slot => 
+      slot.musician && slot.slotDefinition.allowedRoles.includes('vocalist')
+    );
+
+    if (!vocalistSlot || !vocalistSlot.musician) {
+      setRecommendedSongDetails([]);
+      return;
+    }
+
+    const vocalist = vocalistSlot.musician;
+    const vocalInstrument = vocalist.instruments.find(inst => inst.role === 'vocalist');
+
+    if (!vocalInstrument || !vocalInstrument.preciseLowestNote || !vocalInstrument.preciseHighestNote) {
+      setRecommendedSongDetails([]);
+      return;
+    }
+
+    const vocalLowMidi = parseNoteToMidi(vocalInstrument.preciseLowestNote);
+    const vocalHighMidi = parseNoteToMidi(vocalInstrument.preciseHighestNote);
+
+    if (vocalLowMidi === null || vocalHighMidi === null) {
+      setRecommendedSongDetails([]);
+      return;
+    }
+
+    const recommendations: RecommendedSongDetail[] = [];
+    for (const song of allSongs) {
+      const songLowMidi = parseNoteToMidi(song.vocal_range.low);
+      const songHighMidi = parseNoteToMidi(song.vocal_range.high);
+
+      if (songLowMidi !== null && songHighMidi !== null) {
+        const transpositionResult = findOptimalTransposition(vocalLowMidi, vocalHighMidi, songLowMidi, songHighMidi);
+        
+        // Define "not too challenging" criteria
+        // 1. Perfect fit, no issues
+        const isPerfectFit = transpositionResult.semitones === 0 && 
+                             !transpositionResult.message.includes("挑戰極限音") && 
+                             !transpositionResult.message.includes("無法完整演唱");
+        // 2. Acceptable transposition (e.g., within +/- 3 semitones) and comfortable after transposition
+        const isComfortableAfterSmallTransposition = 
+            transpositionResult.semitones !== undefined &&
+            Math.abs(transpositionResult.semitones) <= 3 && // Small transposition
+            !transpositionResult.message.includes("挑戰極限音") && // No extreme notes after transposition
+            !transpositionResult.message.includes("無法完整演唱");
+
+        if (isPerfectFit || isComfortableAfterSmallTransposition) {
+          recommendations.push({ song, transpositionResult });
+        }
+      }
+    }
+    // Sort recommendations: perfect fits first, then by smallest transposition, then alphabetically by title
+    recommendations.sort((a, b) => {
+      const aIsPerfect = a.transpositionResult.semitones === 0 && !a.transpositionResult.message.includes("挑戰極限音") && !a.transpositionResult.message.includes("無法完整演唱");
+      const bIsPerfect = b.transpositionResult.semitones === 0 && !b.transpositionResult.message.includes("挑戰極限音") && !b.transpositionResult.message.includes("無法完整演唱");
+      if (aIsPerfect && !bIsPerfect) return -1;
+      if (!aIsPerfect && bIsPerfect) return 1;
+      
+      const absTransA = Math.abs(a.transpositionResult.semitones ?? 0);
+      const absTransB = Math.abs(b.transpositionResult.semitones ?? 0);
+      if (absTransA !== absTransB) {
+        return absTransA - absTransB;
+      }
+      return a.song.title.localeCompare(b.song.title);
+    });
+
+    setRecommendedSongDetails(recommendations);
+
+  }, [bandSlots, allSongs, songsLoading]); // Dependencies
 
   const handleDropMusician = useCallback((droppedMusician: Musician, targetSlotId: InstrumentKey) => {
     const targetSlotDefinition = initialBandSlotDefinitions.find(def => def.id === targetSlotId);
@@ -333,6 +416,41 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                   </ul>
                 )}
               </div>
+               {/* Recommended Songs Section - NEW */}
+              <div className="bg-card rounded-lg p-6 shadow-DEFAULT mt-6">
+                <h3 className="text-xl font-serif font-semibold text-secondary mb-4">
+                  推薦歌曲 (基於主唱音域)
+                </h3>
+                {songsLoading && <p className="text-text-tertiary_light_md italic">歌曲載入中...</p>}
+                {!songsLoading && recommendedSongDetails.length === 0 && 
+                  (bandSlots.some(s => s.musician && s.slotDefinition.allowedRoles.includes('vocalist')) ? 
+                    <p className="text-text-main italic">目前主唱音域無特別推薦歌曲，或主唱音域未設定。</p> : 
+                    <p className="text-text-main italic">請先在樂隊中加入主唱並設定其音域以查看推薦。</p>
+                  )
+                }
+                {!songsLoading && recommendedSongDetails.length > 0 && (
+                  <ul className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    {recommendedSongDetails.map(({ song, transpositionResult }) => (
+                      <li 
+                        key={song.title} 
+                        className="p-3 bg-card-slot rounded-md shadow hover:bg-primary/10 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedSong(song);
+                          setAnalysisResult(null); // Clear detailed analysis from other section
+                          // Optionally, directly run analysis for this song:
+                          // handleAnalyzeBand(); // Be careful with immediate re-render & analysis logic trigger
+                        }}
+                      >
+                        <h5 className="font-semibold text-primary_light truncate">{song.title}</h5>
+                        <p className="text-xs text-text-main">風格: {song.genre}, 原音域: {song.vocal_range.low} - {song.vocal_range.high}</p>
+                        <p className={`text-xs ${transpositionResult.semitones === 0 && !transpositionResult.message.includes("挑戰極限音") && !transpositionResult.message.includes("無法完整演唱") ? 'text-green-400' : 'text-yellow-500'}`}>
+                          建議: {transpositionResult.message}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </section>
             
             <section className="flex-[1_1_35%] flex flex-col gap-6">
@@ -343,7 +461,7 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                   </h3>
                   <div className="mb-4">
                     <label htmlFor="song-select" className="block text-sm font-medium text-text-main mb-1">
-                      選擇歌曲:
+                      選擇歌曲進行詳細分析:
                     </label>
                     {songsLoading && <p className="text-text-tertiary_light_md italic">歌曲載入中...</p>}
                     {songsError && <p className="text-red-500 text-sm">{songsError}</p>}
@@ -396,7 +514,7 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                     )
                   ) : (
                      <p className="text-text-main italic mt-4 pt-4 border-t border-gray-700">
-                      請先選擇一首歌曲。
+                      請先選擇一首歌曲進行詳細分析。
                     </p>
                   )}
                 </div>
