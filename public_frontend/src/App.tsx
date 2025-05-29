@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import CreateMusicianPage from './pages/CreateMusicianPage';
 import AssembleBandPage from './pages/AssembleBandPage';
+import CreateMusicianPage from './pages/CreateMusicianPage';
 import Header from './components/layout/Header';
 import type { Musician } from './types';
 // import './styles/index.css'; // Tailwind CSS is imported in main.tsx via index.css

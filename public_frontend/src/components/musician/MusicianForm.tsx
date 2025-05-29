@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { v4 as uuidv4 } from 'uuid';
 import type { 
     Musician, 
@@ -14,7 +14,8 @@ import {
     MUSICIAN_ROLE_LABELS, 
     MUSIC_STYLE_LABELS, 
     SKILL_LEVEL_OPTIONS,
-    VOCAL_RANGE_LABELS 
+    VOCAL_RANGE_LABELS,
+    VOCAL_RANGE_NOTE_MAP
 } from '../../types';
 // import './MusicianForm.css'; // Removed
 
@@ -30,6 +31,8 @@ const createDefaultInstrument = (): InstrumentDetail => ({
     skillLevel: undefined as SkillLevel | undefined,
     vocalType: undefined as VocalType | undefined,
     vocalRange: undefined as VocalRange | undefined,
+    preciseLowestNote: '',
+    preciseHighestNote: '',
     canPlayLead: false,
     canPlayRhythm: false,
     preferredDrumKit: '',
@@ -51,7 +54,7 @@ const buttonDangerClasses = `${buttonBaseClasses} bg-transparent text-error bord
 const buttonSmallClasses = "py-1 px-2 text-xs";
 
 const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCancelEdit }) => {
-    const { register, control, handleSubmit, watch, formState: { errors }, reset } = useForm<Musician>({
+    const { register, control, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm<Musician>({
         defaultValues: initialData 
             ? JSON.parse(JSON.stringify(initialData)) 
             : {
@@ -98,6 +101,8 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                     skillLevel: (skillLevelFromForm === undefined || isNaN(skillLevelFromForm)) ? undefined : skillLevelFromForm as SkillLevel,
                     vocalType: (inst.vocalType as string) === '' ? undefined : inst.vocalType as VocalType | undefined,
                     vocalRange: (inst.vocalRange as string) === '' ? undefined : inst.vocalRange as VocalRange | undefined,
+                    preciseLowestNote: inst.preciseLowestNote?.trim() === '' ? undefined : inst.preciseLowestNote?.trim(),
+                    preciseHighestNote: inst.preciseHighestNote?.trim() === '' ? undefined : inst.preciseHighestNote?.trim(),
                 };
             })
         };
@@ -169,7 +174,16 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
             {fields.map((fieldItem, index) => {
                 const instrumentPath = `instruments.${index}` as const;
                 const currentRole = watch(`${instrumentPath}.role`);
+                const currentVocalRange = watch(`${instrumentPath}.vocalRange`);
                 const fieldIdPrefix = `instruments[${index}]`;
+                
+                useEffect(() => {
+                    if (currentRole === 'vocalist' && currentVocalRange && VOCAL_RANGE_NOTE_MAP[currentVocalRange as VocalRange]) {
+                        const { lowest, highest } = VOCAL_RANGE_NOTE_MAP[currentVocalRange as VocalRange];
+                        setValue(`${instrumentPath}.preciseLowestNote`, lowest, { shouldValidate: true, shouldDirty: true });
+                        setValue(`${instrumentPath}.preciseHighestNote`, highest, { shouldValidate: true, shouldDirty: true });
+                    }
+                }, [currentVocalRange, currentRole, index, setValue, instrumentPath]);
                 
                 return (
                     <div key={fieldItem.id} className="bg-card-slot/50 p-4 rounded-md space-y-4 mb-6 border border-border-main/50">
@@ -221,7 +235,7 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor={`${fieldIdPrefix}.vocalRange`} className={labelClasses}>音域 (主唱)</label>
+                                    <label htmlFor={`${fieldIdPrefix}.vocalRange`} className={labelClasses}>音域描述 (主唱)</label>
                                     <select 
                                         id={`${fieldIdPrefix}.vocalRange`} 
                                         {...register(`${instrumentPath}.vocalRange` as const)}
@@ -229,11 +243,35 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                                         autoComplete={`musician-instrument-${index}-vocal-range`}
                                         defaultValue=""
                                     >
-                                        <option value="">選擇音域</option>
+                                        <option value="">選擇音域描述</option>
                                         {(Object.keys(VOCAL_RANGE_LABELS) as Array<keyof typeof VOCAL_RANGE_LABELS>).map(key => (
                                             <option key={key} value={key}>{VOCAL_RANGE_LABELS[key]}</option>
                                         ))}
                                     </select>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                                    <div className="form-group">
+                                        <label htmlFor={`${fieldIdPrefix}.preciseLowestNote`} className={labelClasses}>精確最低音 (選填)</label>
+                                        <input 
+                                            id={`${fieldIdPrefix}.preciseLowestNote`}
+                                            type="text"
+                                            {...register(`${instrumentPath}.preciseLowestNote` as const)} 
+                                            className={inputClasses}
+                                            placeholder="例如: C3"
+                                            autoComplete={`musician-instrument-${index}-lowest-note`}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor={`${fieldIdPrefix}.preciseHighestNote`} className={labelClasses}>精確最高音 (選填)</label>
+                                        <input 
+                                            id={`${fieldIdPrefix}.preciseHighestNote`}
+                                            type="text"
+                                            {...register(`${instrumentPath}.preciseHighestNote` as const)} 
+                                            className={inputClasses}
+                                            placeholder="例如: G5"
+                                            autoComplete={`musician-instrument-${index}-highest-note`}
+                                        />
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -255,12 +293,12 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor={`${fieldIdPrefix}.skillLevel`} className={labelClasses}>技能等級 (1-5)</label>
+                            <label htmlFor={`${fieldIdPrefix}.skillLevel`} className={labelClasses}>技能等級</label>
                             <select 
                                 id={`${fieldIdPrefix}.skillLevel`}
                                 {...register(`${instrumentPath}.skillLevel` as const, { valueAsNumber: true })}
                                 className={selectClasses}
-                                autoComplete={`musician-instrument-${index}-skill`}
+                                autoComplete={`musician-instrument-${index}-skill-level`}
                                 defaultValue=""
                             >
                                 <option value="">選擇等級</option>
@@ -271,58 +309,56 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                         </div>
                         
                         {(currentRole === 'guitarist' || currentRole === 'electric_guitarist' || currentRole === 'bassist') && (
-                            <>
-                                <div className="flex items-center space-x-2 mt-2">
+                            <div className="space-y-2 mt-2">
+                                <label className={labelClasses}>吉他/貝斯選項:</label>
+                                <div className="flex items-center">
                                     <input 
-                                      type="checkbox" 
-                                      id={`${fieldIdPrefix}.canPlayLead`} 
-                                      {...register(`${instrumentPath}.canPlayLead`)} 
-                                      className="h-4 w-4 text-primary border-border-main rounded focus:ring-primary"
+                                        id={`${fieldIdPrefix}.canPlayLead`} 
+                                        type="checkbox" 
+                                        {...register(`${instrumentPath}.canPlayLead` as const)} 
+                                        className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary mr-2"
                                     />
                                     <label htmlFor={`${fieldIdPrefix}.canPlayLead`} className="text-sm text-text-main">可演奏主音 (Lead)</label>
                                 </div>
-                                <div className="flex items-center space-x-2 mt-2">
+                                <div className="flex items-center">
                                     <input 
-                                      type="checkbox" 
-                                      id={`${fieldIdPrefix}.canPlayRhythm`} 
-                                      {...register(`${instrumentPath}.canPlayRhythm`)} 
-                                      className="h-4 w-4 text-primary border-border-main rounded focus:ring-primary"
+                                        id={`${fieldIdPrefix}.canPlayRhythm`} 
+                                        type="checkbox" 
+                                        {...register(`${instrumentPath}.canPlayRhythm` as const)} 
+                                        className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary mr-2"
                                     />
                                     <label htmlFor={`${fieldIdPrefix}.canPlayRhythm`} className="text-sm text-text-main">可演奏節奏 (Rhythm)</label>
                                 </div>
-                            </>
+                            </div>
                         )}
                          {currentRole === 'drummer' && (
-                             <div className="form-group">
-                                <label htmlFor={`${fieldIdPrefix}.preferredDrumKit`} className={labelClasses}>偏好鼓組 (選填)</label>
+                            <div className="form-group">
+                                <label htmlFor={`${fieldIdPrefix}.preferredDrumKit`} className={labelClasses}>偏好鼓組型號 (選填)</label>
                                 <input 
-                                  type="text" 
-                                  id={`${fieldIdPrefix}.preferredDrumKit`} 
-                                  {...register(`${instrumentPath}.preferredDrumKit`)} 
-                                  className={inputClasses} 
-                                  placeholder="例如：Standard Rock Kit" 
-                                  autoComplete="off"
+                                    id={`${fieldIdPrefix}.preferredDrumKit`}
+                                    type="text"
+                                    {...register(`${instrumentPath}.preferredDrumKit` as const)} 
+                                    className={inputClasses}
+                                    placeholder="例如：Standard Rock Kit, Jazz Fusion Kit"
+                                    autoComplete={`musician-instrument-${index}-drum-kit`}
                                 />
                             </div>
                         )}
                         {currentRole === 'keyboardist' && (
-                             <div className="form-group">
-                                <label htmlFor={`${fieldIdPrefix}.keyboardSounds`} className={labelClasses}>常用鍵盤音色 (逗號分隔)</label>
+                            <div className="form-group">
+                                <label htmlFor={`${fieldIdPrefix}.keyboardSounds`} className={labelClasses}>常用鍵盤音色 (選填，用逗號分隔)</label>
                                 <Controller
                                     name={`${instrumentPath}.keyboardSounds` as const}
                                     control={control}
-                                    defaultValue={fields[index]?.keyboardSounds || []} // Ensure defaultValue is an array
                                     render={({ field }) => (
-                                        <input 
-                                            type="text" 
-                                            id={`${fieldIdPrefix}.keyboardSounds`} 
-                                            // value is an array, need to join for input, and split for react-hook-form
-                                            {...field}
-                                            value={Array.isArray(field.value) ? field.value.join(', ') : ''} // Display as comma-separated string
-                                            onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(s => s))} // Store as array of strings
-                                            className={inputClasses} 
+                                        <input
+                                            id={`${fieldIdPrefix}.keyboardSounds`}
+                                            type="text"
+                                            value={Array.isArray(field.value) ? field.value.join(', ') : ''}
+                                            onChange={(e) => field.onChange(e.target.value ? e.target.value.split(',').map(s => s.trim()) : [])}
+                                            className={inputClasses}
                                             placeholder="例如：Piano, Synth Pad, Organ"
-                                            autoComplete="off"
+                                            autoComplete={`musician-instrument-${index}-keyboard-sounds`}
                                         />
                                     )}
                                 />

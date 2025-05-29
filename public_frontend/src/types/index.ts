@@ -34,6 +34,19 @@ export const VOCAL_RANGE_LABELS: Record<VocalRange, string> = {
   versatile: '通用音域',
 };
 
+// 新增：音域標籤到具體音符範圍的映射
+// 注意：這些音域範圍是近似值，僅供參考和預設。
+// 格式為 NoteNameOctave (例如 C4, F#5)
+export const VOCAL_RANGE_NOTE_MAP: Record<VocalRange, { lowest: string; highest: string }> = {
+  soprano: { lowest: 'C4', highest: 'C6' },         // 女高音
+  'mezzo-soprano': { lowest: 'A3', highest: 'A5' }, // 女中音
+  alto: { lowest: 'F3', highest: 'F5' },            // 女低音/中音
+  tenor: { lowest: 'C3', highest: 'C5' },           // 男高音
+  baritone: { lowest: 'F2', highest: 'F4' },        // 男中音
+  bass: { lowest: 'E2', highest: 'E4' },            // 男低音
+  versatile: { lowest: 'G2', highest: 'G5' },       // 通用音域 (給一個較寬的範圍)
+};
+
 // 通用音樂風格
 export type MusicStyle = 'rock' | 'pop' | 'jazz' | 'blues' | 'acoustic' | 'metal' | 'funk' | 'ballad' | 'electronic' | 'classical' | 'reggae' | 'folk';
 export const MUSIC_STYLE_LABELS: Record<MusicStyle, string> = {
@@ -68,7 +81,9 @@ export interface InstrumentDetail {
   skillLevel?: SkillLevel | undefined; // Allow undefined
   // 主唱特有
   vocalType?: VocalType; // 'male' or 'female'
-  vocalRange?: VocalRange;
+  vocalRange?: VocalRange; // 描述性音域標籤
+  preciseLowestNote?: string; // 例如 "C3"
+  preciseHighestNote?: string; // 例如 "G5"
   // 樂手特有 (範例)
   canPlayLead?: boolean; // (吉他)
   canPlayRhythm?: boolean; // (吉他)
@@ -95,6 +110,8 @@ export interface Song {
   secondaryGenres?: MusicStyle[];
   tempo?: 'slow' | 'medium' | 'fast';
   key?: string; // 例如 "C Major"
+  songLowestNote?: string; // 例如 "A3"
+  songHighestNote?: string; // 例如 "E5"
 }
 
 // 新增：用於 react-dnd 的拖曳項目類型
