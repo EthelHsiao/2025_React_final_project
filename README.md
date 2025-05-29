@@ -1,5 +1,6 @@
 # 虛擬樂隊產生器 (Virtual Band Generator)
 
+React Final Project
 一個 React 應用程式，讓使用者可以建立音樂家、組建虛擬樂隊，並根據主唱音域推薦適合的歌曲。
 
 ## 主要技術棧
