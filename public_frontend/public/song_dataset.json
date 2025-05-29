@@ -1,0 +1,256 @@
+[
+  {
+    "title": "《溫柔》- 五月天",
+    "genre": "Ballad",
+    "vocal_range": {
+      "low": "E3",
+      "high": "G4"
+    },
+    "band_setup": [
+      "男主唱",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Someone Like You》- Adele",
+    "genre": "Ballad",
+    "vocal_range": {
+      "low": "E3",
+      "high": "E5"
+    },
+    "band_setup": [
+      "女主唱",
+      "KB"
+    ]
+  },
+  {
+    "title": "《beside you》- keshi",
+    "genre": "R&B",
+    "vocal_range": {
+      "low": "C3",
+      "high": "E5"
+    },
+    "band_setup": [
+      "男主唱",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《愛愛愛》- 方大同",
+    "genre": "R&B",
+    "vocal_range": {
+      "low": "C3",
+      "high": "C5"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《夜に駆ける》- YOASOBI",
+    "genre": "J-Pop",
+    "vocal_range": {
+      "low": "G3",
+      "high": "F5"
+    },
+    "band_setup": [
+      "女主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《踊り子》- Vaundy",
+    "genre": "J-Pop",
+    "vocal_range": {
+      "low": "D3",
+      "high": "G4"
+    },
+    "band_setup": [
+      "男主唱",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Stairway to Heaven》- Led Zeppelin",
+    "genre": "Rock",
+    "vocal_range": {
+      "low": "A3",
+      "high": "G5"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Bohemian Rhapsody》- Queen",
+    "genre": "Rock",
+    "vocal_range": {
+      "low": "F3",
+      "high": "B#5"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Take Me Out》- Franz Ferdinand",
+    "genre": "Indie",
+    "vocal_range": {
+      "low": "B2",
+      "high": "G4"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Motion Sickness》- Phoebe Bridgers",
+    "genre": "Indie",
+    "vocal_range": {
+      "low": "C3",
+      "high": "E5"
+    },
+    "band_setup": [
+      "女主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Ain't No Mountain High Enough》- Marvin Gaye & Tammi Terrell",
+    "genre": "Funk",
+    "vocal_range": {
+      "low": "G3",
+      "high": "E5"
+    },
+    "band_setup": [
+      "男主唱",
+      "女主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《September》- Earth, Wind & Fire",
+    "genre": "Funk",
+    "vocal_range": {
+      "low": "B3",
+      "high": "A5"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯",
+      "小號",
+      "薩克斯風",
+      "長號"
+    ]
+  },
+  {
+    "title": "《Feeling Good》- Nina Simone",
+    "genre": "Jazz",
+    "vocal_range": {
+      "low": "F3",
+      "high": "G5"
+    },
+    "band_setup": [
+      "女主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯",
+      "小號",
+      "薩克斯風"
+    ]
+  },
+  {
+    "title": "《My Funny Valentine》- Chet Baker",
+    "genre": "Jazz",
+    "vocal_range": {
+      "low": "C3",
+      "high": "E4"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Numb/Encore》- Jay-Z & Linkin Park",
+    "genre": "Hip-Hop",
+    "vocal_range": {
+      "low": "F3",
+      "high": "G5"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Fast Car》- Tracy Chapman",
+    "genre": "Folk",
+    "vocal_range": {
+      "low": "G3",
+      "high": "C5"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  },
+  {
+    "title": "《Take Me Home, Country Roads》- John Denver",
+    "genre": "Folk",
+    "vocal_range": {
+      "low": "E3",
+      "high": "G4"
+    },
+    "band_setup": [
+      "男主唱",
+      "KB",
+      "吉他",
+      "鼓",
+      "貝斯"
+    ]
+  }
+]

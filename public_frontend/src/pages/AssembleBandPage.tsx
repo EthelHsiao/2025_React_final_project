@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import type { ConnectDragSource, ConnectDropTarget, ConnectDragPreview } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import type { Musician, InstrumentDetail, BandSlotDefinition, BandMemberSlot, MusicStyle, MusicianRole, InstrumentKey, SongDataEntry } from '../types';
-import { MUSICIAN_ROLE_LABELS, SKILL_LEVEL_OPTIONS, VOCAL_RANGE_LABELS, MUSIC_STYLE_LABELS, ItemTypes, INSTRUMENT_SLOT_LABELS } from '../types';
+import type { Musician, BandSlotDefinition, BandMemberSlot, MusicStyle, MusicianRole, InstrumentKey, SongDataEntry } from '../types';
+import { MUSICIAN_ROLE_LABELS, MUSIC_STYLE_LABELS, ItemTypes, INSTRUMENT_SLOT_LABELS } from '../types';
 import { parseNoteToMidi, midiToNoteString, findOptimalTransposition } from '../utils/musicUtils';
 import type { TranspositionResult } from '../utils/musicUtils';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
@@ -36,7 +36,7 @@ interface DraggableMusicianCardProps {
 }
 
 const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician }) => {
-  const [{ isDragging }, drag, preview]: [{ isDragging: boolean }, ConnectDragSource, ConnectDragPreview] = useDrag(() => ({
+  const [{ isDragging }, drag, _preview]: [{ isDragging: boolean }, ConnectDragSource, ConnectDragPreview] = useDrag(() => ({
     type: ItemTypes.MUSICIAN,
     item: { ...musician, type: ItemTypes.MUSICIAN },
     collect: (monitor) => ({
@@ -49,7 +49,7 @@ const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician 
   return (
     // @ts-ignore
     <li 
-      ref={drag}
+      ref={drag as any}
       style={{ opacity: isDragging ? 0.7 : 1 }}
       className={`bg-card-slot p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing 
                   ${isDragging ? 'ring-2 ring-primary scale-105 shadow-xl z-10' : ''}`}
@@ -125,7 +125,7 @@ const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusic
   return (
     // @ts-ignore
     <div 
-      ref={drop}
+      ref={drop as any}
       className={`${baseClasses} ${borderColor} ${dynamicBg}`}
     >
       <h4 className="text-sm font-serif font-semibold text-secondary_light text-center mb-1">{slot.slotDefinition.label}</h4>

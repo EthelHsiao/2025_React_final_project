@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { v4 as uuidv4 } from 'uuid';
 import type { 
     Musician, 
