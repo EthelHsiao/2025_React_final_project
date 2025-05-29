@@ -6,6 +6,7 @@ import type { Musician, InstrumentDetail, BandSlotDefinition, BandMemberSlot, Mu
 import { MUSICIAN_ROLE_LABELS, SKILL_LEVEL_OPTIONS, VOCAL_RANGE_LABELS, MUSIC_STYLE_LABELS, ItemTypes, INSTRUMENT_SLOT_LABELS } from '../types';
 import { parseNoteToMidi, midiToNoteString, findOptimalTransposition } from '../utils/musicUtils';
 import type { TranspositionResult } from '../utils/musicUtils';
+import { CheckCircleIcon } from '@heroicons/react/24/solid';
 
 const buttonBaseClasses = "py-2 px-4 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-150 uppercase tracking-wider";
 const buttonPrimaryClasses = `${buttonBaseClasses} bg-primary text-text-inverted border-primary hover:bg-tertiary hover:border-tertiary focus:ring-primary`;
@@ -49,8 +50,9 @@ const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician 
     // @ts-ignore
     <li 
       ref={drag}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
-      className={`bg-card-slot p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing ${isDragging ? 'ring-2 ring-primary' : ''}`}
+      style={{ opacity: isDragging ? 0.7 : 1 }}
+      className={`bg-card-slot p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing 
+                  ${isDragging ? 'ring-2 ring-primary scale-105 shadow-xl z-10' : ''}`}
     >
       <h5 className="text-md font-serif font-semibold text-primary truncate">{musician.name}</h5>
       {musician.overallPrimaryStyle && (
@@ -102,23 +104,29 @@ const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusic
   }), [slot, onDropMusician, onRemoveMusician]);
 
   const isActive = isOver && canDrop;
-  let borderColor = 'border-tertiary';
+  const isPotential = isOver && !canDrop;
+
+  let baseClasses = "bg-card p-4 rounded-lg shadow-inner min-h-[120px] flex flex-col justify-between items-center border-2 border-dashed transition-all duration-200";
+  let borderColor = "border-tertiary";
+  let dynamicBg = "";
+
   if (isActive) {
-    borderColor = 'border-green-500';
-  } else if (canDrop && isOver && !isActive) {
-    borderColor = 'border-red-500';
+    borderColor = "border-green-500";
+    dynamicBg = "bg-green-500/10";
+    baseClasses += " ring-2 ring-green-500 scale-105";
+  } else if (isPotential) {
+    borderColor = "border-red-500";
+    dynamicBg = "bg-red-500/10";
+    baseClasses += " ring-2 ring-red-500";
   } else if (canDrop) {
-    borderColor = 'border-yellow-500';
+    borderColor = "border-yellow-500";
   }
 
   return (
     // @ts-ignore
     <div 
       ref={drop}
-      className={`bg-card p-4 rounded-lg shadow-inner min-h-[120px] flex flex-col justify-between items-center border-2 border-dashed transition-all duration-200
-                  ${isActive ? 'ring-2 ring-green-500 scale-105' : ''} 
-                  ${!isActive && canDrop && isOver ? 'ring-2 ring-red-500' : ''}
-                  ${borderColor}`}
+      className={`${baseClasses} ${borderColor} ${dynamicBg}`}
     >
       <h4 className="text-sm font-serif font-semibold text-secondary_light text-center mb-1">{slot.slotDefinition.label}</h4>
       <p className="text-xs text-text-tertiary_light_md text-center mb-2">
@@ -134,7 +142,7 @@ const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusic
           </p>
           <button 
             onClick={() => onRemoveMusician(slot.slotDefinition.id)}
-            className="absolute top-0 right-0 mt-1 mr-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full hover:bg-red-700 transition-colors"
+            className="absolute top-0 right-0 mt-1 mr-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full hover:bg-red-700 transition-colors active:bg-red-800 active:translate-y-px"
             title="移除音樂家"
           >
             ✕
@@ -147,7 +155,6 @@ const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusic
   );
 };
 
-// Defining a type for recommended song details
 interface RecommendedSongDetail {
   song: SongDataEntry;
   transpositionResult: TranspositionResult;
@@ -216,64 +223,49 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
       setRecommendedSongDetails([]);
       return;
     }
-
     const vocalistSlot = bandSlots.find(slot => 
       slot.musician && slot.slotDefinition.allowedRoles.includes('vocalist')
     );
-
     if (!vocalistSlot || !vocalistSlot.musician) {
       setRecommendedSongDetails([]);
       return;
     }
-
     const vocalist = vocalistSlot.musician;
     const vocalInstrument = vocalist.instruments.find(inst => inst.role === 'vocalist');
-
     if (!vocalInstrument || !vocalInstrument.preciseLowestNote || !vocalInstrument.preciseHighestNote) {
       setRecommendedSongDetails([]);
       return;
     }
-
     const vocalLowMidi = parseNoteToMidi(vocalInstrument.preciseLowestNote);
     const vocalHighMidi = parseNoteToMidi(vocalInstrument.preciseHighestNote);
-
     if (vocalLowMidi === null || vocalHighMidi === null) {
       setRecommendedSongDetails([]);
       return;
     }
-
     const recommendations: RecommendedSongDetail[] = [];
     for (const song of allSongs) {
       const songLowMidi = parseNoteToMidi(song.vocal_range.low);
       const songHighMidi = parseNoteToMidi(song.vocal_range.high);
-
       if (songLowMidi !== null && songHighMidi !== null) {
         const transpositionResult = findOptimalTransposition(vocalLowMidi, vocalHighMidi, songLowMidi, songHighMidi);
-        
-        // Define "not too challenging" criteria
-        // 1. Perfect fit, no issues
         const isPerfectFit = transpositionResult.semitones === 0 && 
                              !transpositionResult.message.includes("挑戰極限音") && 
                              !transpositionResult.message.includes("無法完整演唱");
-        // 2. Acceptable transposition (e.g., within +/- 3 semitones) and comfortable after transposition
         const isComfortableAfterSmallTransposition = 
             transpositionResult.semitones !== undefined &&
-            Math.abs(transpositionResult.semitones) <= 3 && // Small transposition
-            !transpositionResult.message.includes("挑戰極限音") && // No extreme notes after transposition
+            Math.abs(transpositionResult.semitones) <= 3 &&
+            !transpositionResult.message.includes("挑戰極限音") &&
             !transpositionResult.message.includes("無法完整演唱");
-
         if (isPerfectFit || isComfortableAfterSmallTransposition) {
           recommendations.push({ song, transpositionResult });
         }
       }
     }
-    // Sort recommendations: perfect fits first, then by smallest transposition, then alphabetically by title
     recommendations.sort((a, b) => {
       const aIsPerfect = a.transpositionResult.semitones === 0 && !a.transpositionResult.message.includes("挑戰極限音") && !a.transpositionResult.message.includes("無法完整演唱");
       const bIsPerfect = b.transpositionResult.semitones === 0 && !b.transpositionResult.message.includes("挑戰極限音") && !b.transpositionResult.message.includes("無法完整演唱");
       if (aIsPerfect && !bIsPerfect) return -1;
       if (!aIsPerfect && bIsPerfect) return 1;
-      
       const absTransA = Math.abs(a.transpositionResult.semitones ?? 0);
       const absTransB = Math.abs(b.transpositionResult.semitones ?? 0);
       if (absTransA !== absTransB) {
@@ -281,10 +273,8 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
       }
       return a.song.title.localeCompare(b.song.title);
     });
-
     setRecommendedSongDetails(recommendations);
-
-  }, [bandSlots, allSongs, songsLoading]); // Dependencies
+  }, [bandSlots, allSongs, songsLoading]);
 
   const handleDropMusician = useCallback((droppedMusician: Musician, targetSlotId: InstrumentKey) => {
     const targetSlotDefinition = initialBandSlotDefinitions.find(def => def.id === targetSlotId);
@@ -416,7 +406,7 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                   </ul>
                 )}
               </div>
-               {/* Recommended Songs Section - NEW */}
+              
               <div className="bg-card rounded-lg p-6 shadow-DEFAULT mt-6">
                 <h3 className="text-xl font-serif font-semibold text-secondary mb-4">
                   推薦歌曲 (基於主唱音域)
@@ -430,24 +420,33 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                 }
                 {!songsLoading && recommendedSongDetails.length > 0 && (
                   <ul className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                    {recommendedSongDetails.map(({ song, transpositionResult }) => (
-                      <li 
-                        key={song.title} 
-                        className="p-3 bg-card-slot rounded-md shadow hover:bg-primary/10 transition-colors cursor-pointer"
-                        onClick={() => {
-                          setSelectedSong(song);
-                          setAnalysisResult(null); // Clear detailed analysis from other section
-                          // Optionally, directly run analysis for this song:
-                          // handleAnalyzeBand(); // Be careful with immediate re-render & analysis logic trigger
-                        }}
-                      >
-                        <h5 className="font-semibold text-primary_light truncate">{song.title}</h5>
-                        <p className="text-xs text-text-main">風格: {song.genre}, 原音域: {song.vocal_range.low} - {song.vocal_range.high}</p>
-                        <p className={`text-xs ${transpositionResult.semitones === 0 && !transpositionResult.message.includes("挑戰極限音") && !transpositionResult.message.includes("無法完整演唱") ? 'text-green-400' : 'text-yellow-500'}`}>
-                          建議: {transpositionResult.message}
-                        </p>
-                      </li>
-                    ))}
+                    {recommendedSongDetails.map(({ song, transpositionResult }) => {
+                      const isPerfect = transpositionResult.semitones === 0 && 
+                                      !transpositionResult.message.includes("挑戰極限音") && 
+                                      !transpositionResult.message.includes("無法完整演唱");
+                      return (
+                        <li 
+                          key={song.title} 
+                          className={`p-3 rounded-md shadow transition-all duration-200 ease-in-out transform hover:scale-105 cursor-pointer flex justify-between items-center group
+                                      ${isPerfect ? 'bg-green-700/30 hover:bg-green-600/40' : 'bg-card-slot hover:bg-primary/20'}`}
+                          onClick={() => {
+                            setSelectedSong(song);
+                            setAnalysisResult(null);
+                          }}
+                        >
+                          <div>
+                            <h5 className={`font-semibold truncate group-hover:text-primary_light ${isPerfect ? 'text-green-100' : 'text-primary_light'}`}>{song.title}</h5>
+                            <p className={`text-xs ${isPerfect ? 'text-green-200' : 'text-text-main'}`}>風格: {song.genre}, 原音域: {song.vocal_range.low} - {song.vocal_range.high}</p>
+                            <p className={`text-xs ${isPerfect ? 'text-green-100 font-medium' : transpositionResult.semitones === 0 ? 'text-yellow-300' : 'text-yellow-400'}`}>
+                              建議: {transpositionResult.message}
+                            </p>
+                          </div>
+                          {isPerfect && (
+                            <CheckCircleIcon className="h-6 w-6 text-green-300 flex-shrink-0 ml-2" title="完美匹配" />
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -475,7 +474,7 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                           setSelectedSong(newSelectedSong);
                           setAnalysisResult(null);
                         }}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 bg-background text-text-main focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md shadow-sm"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 bg-background text-text-main focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md shadow-sm active:ring-secondary_light active:border-secondary_light"
                       >
                         <option value="" disabled={selectedSong !== null}>-- 請選擇一首歌曲 --</option>
                         {allSongs.map(song => (
@@ -520,7 +519,7 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
                 </div>
                 <button 
                   onClick={handleAnalyzeBand}
-                  className={`${buttonPrimaryClasses} mt-auto self-start ${!selectedSong || bandSlots.every(s => !s.musician || !s.slotDefinition.allowedRoles.includes('vocalist')) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`${buttonPrimaryClasses} mt-auto self-start active:translate-y-px active:shadow-inner ${!selectedSong || bandSlots.every(s => !s.musician || !s.slotDefinition.allowedRoles.includes('vocalist')) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={!selectedSong || bandSlots.every(s => !s.musician || !s.slotDefinition.allowedRoles.includes('vocalist'))}
                 >
                   開始評估！
