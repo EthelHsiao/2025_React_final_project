@@ -77,24 +77,33 @@ const CreateMusicianPage: React.FC<CreateMusicianPageProps> = ({
                         </p>
                     )}
                     <h4 className="text-md font-serif font-semibold text-secondary mt-4 mb-2 pb-1 border-b border-border-main">專長:</h4>
-                    <ul className="space-y-1 pl-4 list-disc list-inside text-sm text-text-main">
+                    <ul className="space-y-2 pl-4 list-disc list-inside text-sm text-text-main">
                       {musician.instruments.map((inst: InstrumentDetail, index: number) => {
                         const skillLabel = inst.skillLevel ? SKILL_LEVEL_OPTIONS.find(opt => opt.value === inst.skillLevel)?.label : '';
                         return (
-                          <li key={index}>
+                          <li key={index} className="leading-relaxed">
                             <strong className="font-medium text-primary">{MUSICIAN_ROLE_LABELS[inst.role]}</strong>
-                            {inst.primaryStyle && ` - 風格: ${MUSIC_STYLE_LABELS[inst.primaryStyle]}`}
-                            {skillLabel && ` (等級: ${skillLabel})`}
-                            {inst.vocalType && ` - 性別: ${inst.vocalType === 'male' ? '男' : '女'}`}
-                            {inst.vocalRange && ` - 音域: ${VOCAL_RANGE_LABELS[inst.vocalRange]}`}
+                            {inst.primaryStyle && <span className="text-xs text-text-tertiary_light_md"> - 風格: {MUSIC_STYLE_LABELS[inst.primaryStyle]}</span>}
+                            {skillLabel && <span className="text-xs text-text-tertiary_light_md"> (等級: {skillLabel})</span>}
+                            {inst.role === 'vocalist' && (
+                                <>
+                                    {inst.vocalType && <span className="block pl-4 text-xs text-text-tertiary_light_md">性別: {inst.vocalType === 'male' ? '男' : '女'}</span>}
+                                    {inst.vocalRange && <span className="block pl-4 text-xs text-text-tertiary_light_md">音域描述: {VOCAL_RANGE_LABELS[inst.vocalRange]}</span>}
+                                    {(inst.preciseLowestNote || inst.preciseHighestNote) && (
+                                        <span className="block pl-4 text-xs text-text-tertiary_light_md">
+                                            精確音域: {inst.preciseLowestNote || '未指定'} ~ {inst.preciseHighestNote || '未指定'}
+                                        </span>
+                                    )}
+                                </> 
+                            )}
                             {(inst.role === 'guitarist' || inst.role === 'electric_guitarist' || inst.role === 'bassist') && (
                               <>
-                                {inst.canPlayLead !== undefined && <span className="ml-2">- 主音: {inst.canPlayLead ? '是' : '否'}</span>}
-                                {inst.canPlayRhythm !== undefined && <span className="ml-2">- 節奏: {inst.canPlayRhythm ? '是' : '否'}</span>}
+                                {inst.canPlayLead !== undefined && <span className="block pl-4 text-xs text-text-tertiary_light_md">主音: {inst.canPlayLead ? '是' : '否'}</span>}
+                                {inst.canPlayRhythm !== undefined && <span className="block pl-4 text-xs text-text-tertiary_light_md">節奏: {inst.canPlayRhythm ? '是' : '否'}</span>}
                               </>
                             )}
-                            {inst.role === 'drummer' && inst.preferredDrumKit && <span className="ml-2">- 鼓組: {inst.preferredDrumKit}</span>}
-                            {inst.role === 'keyboardist' && inst.keyboardSounds && inst.keyboardSounds.length > 0 && <span className="ml-2">- 音色: {inst.keyboardSounds.join(', ')}</span>}
+                            {inst.role === 'drummer' && inst.preferredDrumKit && <span className="block pl-4 text-xs text-text-tertiary_light_md">鼓組: {inst.preferredDrumKit}</span>}
+                            {inst.role === 'keyboardist' && inst.keyboardSounds && inst.keyboardSounds.length > 0 && <span className="block pl-4 text-xs text-text-tertiary_light_md">音色: {inst.keyboardSounds.join(', ')}</span>}
                           </li>
                         );
                       })}

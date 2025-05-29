@@ -39,6 +39,8 @@ const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician 
     }),
   }));
 
+  const firstVocalistInstrument = musician.instruments.find(inst => inst.role === 'vocalist');
+
   return (
     // @ts-ignore
     <li 
@@ -53,14 +55,21 @@ const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician 
         </p>
       )}
       <p className="text-xs text-text-secondary_light">專長 ({musician.instruments.length}):</p>
-      <ul className="text-xs text-text-main list-disc list-inside pl-2">
-        {musician.instruments.slice(0, 2).map((inst, index) => (
+      <ul className="text-xs text-text-main list-disc list-inside pl-2 space-y-0.5">
+        {musician.instruments.slice(0, firstVocalistInstrument ? 1 : 2).map((inst, index) => (
           <li key={index} className="truncate">
             {MUSICIAN_ROLE_LABELS[inst.role as MusicianRole]}
-            {inst.skillLevel && ` (Lvl ${inst.skillLevel})`}
+            {inst.skillLevel && <span className="text-text-tertiary_light_md"> (Lvl {inst.skillLevel})</span>}
           </li>
         ))}
-        {musician.instruments.length > 2 && <li className="text-xs italic">...等 {musician.instruments.length - 2} 項</li>}
+        {firstVocalistInstrument && (firstVocalistInstrument.preciseLowestNote || firstVocalistInstrument.preciseHighestNote) && (
+            <li className="text-xs text-text-tertiary_light_md truncate">
+                音域: {firstVocalistInstrument.preciseLowestNote || '-'} ~ {firstVocalistInstrument.preciseHighestNote || '-'}
+            </li>
+        )}
+        {musician.instruments.length > (firstVocalistInstrument ? 1 : 2) && (
+             <li className="text-xs italic text-text-tertiary_light_md">...等更多</li>
+        )}
       </ul>
     </li>
   );
