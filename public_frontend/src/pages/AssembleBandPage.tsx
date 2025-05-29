@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { DndProvider, useDrag, useDrop, ConnectDragSource, ConnectDropTarget } from 'react-dnd';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import type { ConnectDragSource, ConnectDropTarget, ConnectDragPreview } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { Musician, InstrumentDetail, BandSlotDefinition, BandMemberSlot, MusicStyle, MusicianRole, InstrumentKey } from '../types';
 import { MUSICIAN_ROLE_LABELS, SKILL_LEVEL_OPTIONS, VOCAL_RANGE_LABELS, MUSIC_STYLE_LABELS, ItemTypes, INSTRUMENT_SLOT_LABELS } from '../types';
@@ -30,7 +31,7 @@ interface DraggableMusicianCardProps {
 }
 
 const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag, preview]: [{ isDragging: boolean }, ConnectDragSource, ConnectDragPreview] = useDrag(() => ({
     type: ItemTypes.MUSICIAN,
     item: { ...musician, type: ItemTypes.MUSICIAN },
     collect: (monitor) => ({
@@ -39,9 +40,11 @@ const DraggableMusicianCard: React.FC<DraggableMusicianCardProps> = ({ musician 
   }));
 
   return (
+    // @ts-ignore
     <li 
-      ref={drag as unknown as React.Ref<HTMLLIElement>}
-      className={`bg-card-slot p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''}`}
+      ref={drag}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+      className={`bg-card-slot p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing ${isDragging ? 'ring-2 ring-primary' : ''}`}
     >
       <h5 className="text-md font-serif font-semibold text-primary truncate">{musician.name}</h5>
       {musician.overallPrimaryStyle && (
@@ -71,12 +74,12 @@ interface DroppableBandSlotProps {
 }
 
 const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusician, onRemoveMusician }) => {
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+  const [{ isOver, canDrop }, drop]: [{ isOver: boolean, canDrop: boolean }, ConnectDropTarget] = useDrop(() => ({
     accept: ItemTypes.MUSICIAN,
     canDrop: (item: Musician) => {
-      const musician = item;
+      const musicianItem = item as Musician;
       return slot.slotDefinition.allowedRoles.some(allowedRole => 
-        musician.instruments.some(inst => inst.role === allowedRole)
+        musicianItem.instruments.some(inst => inst.role === allowedRole)
       );
     },
     drop: (item: Musician) => onDropMusician(item, slot.slotDefinition.id),
@@ -90,14 +93,16 @@ const DroppableBandSlot: React.FC<DroppableBandSlotProps> = ({ slot, onDropMusic
   let borderColor = 'border-tertiary';
   if (isActive) {
     borderColor = 'border-green-500';
+  } else if (canDrop && isOver && !isActive) {
+    borderColor = 'border-red-500';
   } else if (canDrop) {
     borderColor = 'border-yellow-500';
   }
 
-
   return (
+    // @ts-ignore
     <div 
-      ref={drop as unknown as React.Ref<HTMLDivElement>}
+      ref={drop}
       className={`bg-card p-4 rounded-lg shadow-inner min-h-[120px] flex flex-col justify-between items-center border-2 border-dashed transition-all duration-200
                   ${isActive ? 'ring-2 ring-green-500 scale-105' : ''} 
                   ${!isActive && canDrop && isOver ? 'ring-2 ring-red-500' : ''}
@@ -137,24 +142,36 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
   );
 
   const handleDropMusician = useCallback((droppedMusician: Musician, targetSlotId: InstrumentKey) => {
-    // 檢查音樂家是否已經在其他位置
-    const existingSlot = bandSlots.find(s => s.musician?.id === droppedMusician.id);
-    
-    setBandSlots(prevSlots => 
-      prevSlots.map(slot => {
-        // 如果是目標位置，且音樂家符合角色
-        if (slot.slotDefinition.id === targetSlotId && 
-            slot.slotDefinition.allowedRoles.some(role => droppedMusician.instruments.some(inst => inst.role === role))) {
+    const targetSlotDefinition = initialBandSlotDefinitions.find(def => def.id === targetSlotId);
+    if (!targetSlotDefinition || 
+        !targetSlotDefinition.allowedRoles.some(role => droppedMusician.instruments.some(inst => inst.role === role))) {
+      return;
+    }
+
+    setBandSlots(prevSlots => {
+      let previousSlotIdOfDroppedMusician: InstrumentKey | null = null;
+      for (const s of prevSlots) {
+        if (s.musician?.id === droppedMusician.id) {
+          previousSlotIdOfDroppedMusician = s.slotDefinition.id;
+          break;
+        }
+      }
+
+      if (previousSlotIdOfDroppedMusician === targetSlotId) {
+          return prevSlots;
+      }
+
+      return prevSlots.map(slot => {
+        if (slot.slotDefinition.id === targetSlotId) {
           return { ...slot, musician: droppedMusician };
         }
-        // 如果此位置之前有這位音樂家 (處理從一個位置移到另一個位置的情況)
-        if (slot.musician?.id === droppedMusician.id && slot.slotDefinition.id !== targetSlotId) {
+        if (slot.slotDefinition.id === previousSlotIdOfDroppedMusician) {
           return { ...slot, musician: null };
         }
         return slot;
-      })
-    );
-  }, [bandSlots]);
+      });
+    });
+  }, []);
 
   const handleRemoveMusician = useCallback((slotIdToRemove: InstrumentKey) => {
     setBandSlots(prevSlots => 
@@ -164,7 +181,6 @@ const AssembleBandPage: React.FC<AssembleBandPageProps> = ({ musicians }) => {
     );
   }, []);
 
-  // 過濾掉已經被選入樂隊的音樂家，使其不在音樂家池中重複顯示
   const availableMusicians = musicians.filter(
     musician => !bandSlots.some(slot => slot.musician?.id === musician.id)
   );
