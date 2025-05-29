@@ -52,20 +52,20 @@ export const MUSIC_STYLE_LABELS: Record<MusicStyle, string> = {
 };
 
 // 技能等級
-export type SkillLevel = 1 | 2 | 3 | 4 | 5; // 1 (入門) 到 5 (大師)
-export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
-  1: '入門',
-  2: '初級',
-  3: '中級',
-  4: '高級',
-  5: '大師',
-};
+export type SkillLevel = 1 | 2 | 3 | 4 | 5;
+export const SKILL_LEVEL_OPTIONS: Array<{ value: SkillLevel; label: string }> = [
+  { value: 1, label: '入門' },
+  { value: 2, label: '初級' },
+  { value: 3, label: '中級' },
+  { value: 4, label: '高級' },
+  { value: 5, label: '大師' },
+];
 
 // 單一樂器的詳細資料
 export interface InstrumentDetail {
   role: MusicianRole; // 如 'vocalist', 'guitarist'
   primaryStyle?: MusicStyle; // 該樂器/角色最主要的風格
-  skillLevel?: SkillLevel;
+  skillLevel?: SkillLevel | undefined; // Allow undefined
   // 主唱特有
   vocalType?: VocalType; // 'male' or 'female'
   vocalRange?: VocalRange;

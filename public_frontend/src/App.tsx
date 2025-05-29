@@ -1,19 +1,66 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import CreateMusicianPage from './pages/CreateMusicianPage';
 import AssembleBandPage from './pages/AssembleBandPage';
 import Header from './components/layout/Header';
-import './styles/index.css'; // 全域樣式
+import type { Musician } from './types';
+// import './styles/index.css'; // Tailwind CSS is imported in main.tsx via index.css
 
 function App() {
+  const [musicians, setMusicians] = useState<Musician[]>(() => {
+    const savedMusicians = localStorage.getItem('musicians');
+    return savedMusicians ? JSON.parse(savedMusicians) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('musicians', JSON.stringify(musicians));
+  }, [musicians]);
+
+  const addMusician = (musician: Musician) => {
+    setMusicians((prev) => {
+      // Prevent adding musician with duplicate ID (should be rare with UUIDs from form)
+      if (prev.find(m => m.id === musician.id)) {
+        console.warn("Attempted to add musician with duplicate ID in App:", musician.id);
+        // If somehow a duplicate ID is submitted for a new musician, generate a new one or handle error
+        // For now, we just update if found.
+        return prev.map(m => m.id === musician.id ? musician : m);
+      }
+      return [...prev, musician];
+    });
+  };
+
+  const updateMusician = (musicianToUpdate: Musician) => {
+    setMusicians(prev => prev.map(m => m.id === musicianToUpdate.id ? musicianToUpdate : m));
+  };
+
+  const deleteMusician = (musicianId: string) => {
+    setMusicians(prev => prev.filter(m => m.id !== musicianId));
+  };
+
   return (
     <Router>
-      <div className="app-container">
+      {/* Apply global background, text color, and font family */}
+      <div className="app-container bg-background text-text-main font-sans min-h-screen flex flex-col">
         <Header />
-        <main className="main-content">
+        {/* page-container equivalent for max-width and centering, applied per page or here if truly global */}
+        <main className="main-content flex-grow w-full">
           <Routes>
             <Route path="/" element={<Navigate to="/assemble-band" replace />} />
-            <Route path="/create-musician" element={<CreateMusicianPage />} />
-            <Route path="/assemble-band" element={<AssembleBandPage />} />
+            <Route 
+              path="/create-musician" 
+              element={
+                <CreateMusicianPage 
+                  musicians={musicians}
+                  addMusician={addMusician}
+                  updateMusician={updateMusician}
+                  deleteMusician={deleteMusician}
+                />
+              } 
+            />
+            <Route 
+              path="/assemble-band" 
+              element={<AssembleBandPage musicians={musicians} />} 
+            />
             {/* 未來可以加入 404 頁面 */}
           </Routes>
         </main>
@@ -25,41 +72,4 @@ function App() {
 
 export default App;
 
-// 基本樣式 (可以在 index.css 或 App.css 中)
-// 確保在 public_frontend/src/styles/index.css 中有基本樣式
-/*
-:root {
-  --primary-color: #c0392b;
-  --secondary-color: #2c3e50;
-  --background-color: #ecf0f1;
-  --card-background: #ffffff;
-  --text-color: #34495e;
-  --light-text-color: #f8f9fa;
-  --border-color: #bdc3c7;
-}
-
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--background-color);
-  color: var(--text-color);
-}
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.main-content {
-  flex-grow: 1;
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-}
-*/
+// Removed old CSS comments as styles are now handled by Tailwind and index.css for Tailwind directives
