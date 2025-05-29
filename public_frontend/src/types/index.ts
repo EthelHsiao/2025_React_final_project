@@ -97,6 +97,11 @@ export interface Song {
   key?: string; // 例如 "C Major"
 }
 
+// 新增：用於 react-dnd 的拖曳項目類型
+export const ItemTypes = {
+  MUSICIAN: 'musician',
+};
+
 // 樂隊位置的定義，固定六個
 export interface BandSlotDefinition {
   id: InstrumentKey;
@@ -106,9 +111,9 @@ export interface BandSlotDefinition {
 
 // 實際樂隊中一個位置的狀態
 export interface BandMemberSlot {
-  slotId: InstrumentKey; // 對應 BandSlotDefinition 的 id
+  slotDefinition: BandSlotDefinition; // 改為直接嵌入定義，方便取用 allowedRoles 等
   musician: Musician | null; // 放入此位置的音樂家
-  selectedRole: MusicianRole | null; // 如果音樂家有多重角色，需要指定在此位置扮演的角色
+  // selectedRole: MusicianRole | null; // 如果音樂家有多重角色，需要指定在此位置扮演的角色 (暫時移除，簡化初期邏輯)
 }
 
 // 傳送給後端的樂隊資料結構
@@ -137,4 +142,6 @@ export interface DraggableMusician extends Musician {
 export interface DroppableSlot {
   id: InstrumentKey; // 樂隊位置的 ID
   accepts: MusicianRole[]; // 該位置接受的音樂家角色
+  // 新增一個 type 屬性，用於 useDrop 的 accept 參數
+  type: string; 
 } 
