@@ -4,7 +4,7 @@
 
 // Defines the mapping of note names (pitch classes) to their numerical value (0-11)
 // Using sharps for accidentals for consistency with current types.
-const NOTE_TO_PITCH_CLASS: Record<string, number> = {
+export const NOTE_TO_PITCH_CLASS: Record<string, number> = {
   'C': 0,
   'C#': 1,
   'Db': 1,
@@ -138,4 +138,156 @@ export function getVocalRangeWidthInSemitones(lowestNote?: string, highestNote?:
   }
 
   return highMidi - lowMidi;
-} 
+}
+
+// Constants for transposition analysis
+const MIN_VOCAL_COMFORT_SEMITONES = 3; // Minimum semitones a vocalist should have beyond song range for comfort
+const MAX_TRANSPOSE_SEMITONES = 7; // Max semitones we'd typically suggest transposing (a fifth)
+
+export interface TranspositionResult {
+  semitones?: number;
+  message: string;
+  originalSongLowMidi?: number;
+  originalSongHighMidi?: number;
+  transposedSongLowMidi?: number;
+  transposedSongHighMidi?: number;
+  vocalLowMidi?: number;
+  vocalHighMidi?: number;
+}
+
+/**
+ * Finds an optimal transposition for a song to fit a vocalist's range.
+ * @param vocalLowMidi Vocalist's lowest MIDI note.
+ * @param vocalHighMidi Vocalist's highest MIDI note.
+ * @param songLowMidi Song's original lowest MIDI note.
+ * @param songHighMidi Song's original highest MIDI note.
+ * @returns An object with the suggested transposition in semitones and a message,
+ *          or just a message if no suitable transposition is found or if input is invalid.
+ */
+export const findOptimalTransposition = (
+  vocalLowMidi?: number | null, 
+  vocalHighMidi?: number | null, 
+  songLowMidi?: number | null, 
+  songHighMidi?: number | null
+): TranspositionResult => {
+  if (vocalLowMidi == null || vocalHighMidi == null || songLowMidi == null || songHighMidi == null) {
+    return { message: "輸入的音域或歌曲音高資訊不完整。" };
+  }
+
+  if (vocalLowMidi >= vocalHighMidi) {
+    return { message: "歌手的最低音高於或等於最高音，音域設定無效。" };
+  }
+  if (songLowMidi >= songHighMidi) {
+    return { message: "歌曲的最低音高於或等於最高音，歌曲音高設定無效。" };
+  }
+
+  const vocalWidth = vocalHighMidi - vocalLowMidi;
+  const songWidth = songHighMidi - songLowMidi;
+
+  // Check if song is already within vocal range comfortably
+  if (vocalLowMidi <= songLowMidi && vocalHighMidi >= songHighMidi) {
+    if (vocalWidth >= songWidth + MIN_VOCAL_COMFORT_SEMITONES * 2) {
+        return {
+            semitones: 0,
+            message: "歌曲已在歌手的舒適音域內，無需移調。",
+            originalSongLowMidi: songLowMidi,
+            originalSongHighMidi: songHighMidi,
+            transposedSongLowMidi: songLowMidi,
+            transposedSongHighMidi: songHighMidi,
+            vocalLowMidi,
+            vocalHighMidi,
+        };
+    }
+    return {
+        semitones: 0,
+        message: "歌曲音域在歌手能力範圍內，但可能挑戰極限音。無需移調。",
+        originalSongLowMidi: songLowMidi,
+        originalSongHighMidi: songHighMidi,
+        transposedSongLowMidi: songLowMidi,
+        transposedSongHighMidi: songHighMidi,
+        vocalLowMidi,
+        vocalHighMidi,
+    };
+  }
+  
+  // If song is wider than vocal range, it's impossible even with transposition
+  if (songWidth > vocalWidth) {
+    return { 
+        message: `歌曲音域寬度 (${songWidth} 半音) 超過歌手音域寬度 (${vocalWidth} 半音)，無法完整演唱。`,
+        originalSongLowMidi: songLowMidi,
+        originalSongHighMidi: songHighMidi,
+        vocalLowMidi,
+        vocalHighMidi,
+    };
+  }
+
+  let bestTranspose = null;
+  let minDifference = Infinity; // Used to find transposition that best centers song in vocal range
+
+  // Try transposing up and down within MAX_TRANSPOSE_SEMITONES
+  for (let semitones = -MAX_TRANSPOSE_SEMITONES; semitones <= MAX_TRANSPOSE_SEMITONES; semitones++) {
+    const transposedLow = songLowMidi + semitones;
+    const transposedHigh = songHighMidi + semitones;
+
+    if (transposedLow >= vocalLowMidi && transposedHigh <= vocalHighMidi) {
+      // This transposition fits. Now, check if it's a "good" fit.
+      // We prefer a transposition that centers the song in the vocalist's range
+      // or at least provides some comfort margin.
+      const lowComfort = transposedLow - vocalLowMidi;
+      const highComfort = vocalHighMidi - transposedHigh;
+      
+      // Prioritize fits with at least minimal comfort on both ends
+      if (lowComfort >= MIN_VOCAL_COMFORT_SEMITONES && highComfort >= MIN_VOCAL_COMFORT_SEMITONES) {
+        const currentDifference = Math.abs((vocalHighMidi - vocalLowMidi) - (transposedHigh - transposedLow)) / 2 - Math.min(lowComfort, highComfort);
+        if (bestTranspose === null || currentDifference < minDifference) {
+            minDifference = currentDifference;
+            bestTranspose = semitones;
+        }
+      } else if (bestTranspose === null) { 
+        // If no comfortable fit found yet, take any fit. 
+        // This part can be refined based on how strictly we want to enforce MIN_VOCAL_COMFORT_SEMITONES
+        const currentDifference = Math.abs(transposedLow - vocalLowMidi) + Math.abs(vocalHighMidi - transposedHigh);
+        if (currentDifference < minDifference) {
+            minDifference = currentDifference;
+            bestTranspose = semitones;
+        }
+      }
+    }
+  }
+
+  if (bestTranspose !== null) {
+    const transposedLow = songLowMidi + bestTranspose;
+    const transposedHigh = songHighMidi + bestTranspose;
+    let message = `建議移調 ${bestTranspose} 半音 (`;
+    if (bestTranspose > 0) message += `升 ${bestTranspose} Key`;
+    else if (bestTranspose < 0) message += `降 ${-bestTranspose} Key`;
+    else message = "無需移調，歌曲已在歌手音域內。"; // Should have been caught earlier, but as a fallback.
+    message += ").";
+    
+    // Additional comfort check message
+    const lowComfort = transposedLow - vocalLowMidi;
+    const highComfort = vocalHighMidi - transposedHigh;
+    if (lowComfort < MIN_VOCAL_COMFORT_SEMITONES || highComfort < MIN_VOCAL_COMFORT_SEMITONES) {
+        message += " 注意：此移調可能仍會挑戰歌手的極限音。";
+    }
+
+    return { 
+        semitones: bestTranspose,
+        message,
+        originalSongLowMidi: songLowMidi,
+        originalSongHighMidi: songHighMidi,
+        transposedSongLowMidi: transposedLow,
+        transposedSongHighMidi: transposedHigh,
+        vocalLowMidi,
+        vocalHighMidi,
+    };
+  }
+
+  return { 
+    message: "在合理的移調範圍內，找不到適合歌手音域的歌曲移調方式。可能需要考慮大幅度移調或選擇其他歌曲。",
+    originalSongLowMidi: songLowMidi,
+    originalSongHighMidi: songHighMidi,
+    vocalLowMidi,
+    vocalHighMidi,
+  };
+}; 

@@ -106,12 +106,24 @@ export interface Song {
   id: string;
   title: string;
   artist: string;
-  primaryGenre: MusicStyle;
+  primaryGenre?: MusicStyle;
   secondaryGenres?: MusicStyle[];
   tempo?: 'slow' | 'medium' | 'fast';
   key?: string; // 例如 "C Major"
   songLowestNote?: string; // 例如 "A3"
   songHighestNote?: string; // 例如 "E5"
+}
+
+// 新增：用於 song_dataset.json 的歌曲資料結構
+export interface SongDataEntry {
+  title: string;
+  genre: string; // 原始 genre 字串，例如 "Ballad", "J-Pop"
+  vocal_range: {
+    low: string;
+    high: string;
+  };
+  band_setup: string[]; // 例如 ["男主唱", "吉他"]
+  // 可以根據 JSON 檔案的實際情況擴展其他屬性
 }
 
 // 新增：用於 react-dnd 的拖曳項目類型
