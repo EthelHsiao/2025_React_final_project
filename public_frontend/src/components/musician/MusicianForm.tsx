@@ -17,7 +17,6 @@ import {
     VOCAL_RANGE_LABELS,
     VOCAL_RANGE_NOTE_MAP
 } from '../../types';
-// import './MusicianForm.css'; // Removed
 
 interface MusicianFormProps {
     onSubmit: (data: Musician) => void;
@@ -26,27 +25,26 @@ interface MusicianFormProps {
 }
 
 const createDefaultInstrument = (): InstrumentDetail => ({
-    role: '' as unknown as MusicianRole, // Keep for react-hook-form, will be validated
-    primaryStyle: undefined as MusicStyle | undefined,
-    skillLevel: undefined as SkillLevel | undefined,
-    vocalType: undefined as VocalType | undefined,
-    vocalRange: undefined as VocalRange | undefined,
+    role: '' as MusicianRole,
+    primaryStyle: '' as MusicStyle,
+    skillLevel: '' as any,
+    vocalType: '' as VocalType,
+    vocalRange: '' as VocalRange,
     preciseLowestNote: '',
     preciseHighestNote: '',
     canPlayLead: false,
     canPlayRhythm: false,
     preferredDrumKit: '',
-    keyboardSounds: [] as string[],
+    keyboardSounds: [],
 });
 
-// Tailwind class definitions
+// Tailwind classes
 const labelClasses = "block text-sm font-medium text-secondary mb-1";
 const inputBaseClasses = "block w-full bg-card-slot border-border-main rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-text-main placeholder-gray-500";
 const selectClasses = `${inputBaseClasses}`;
 const inputClasses = `${inputBaseClasses}`;
 const textareaClasses = `${inputBaseClasses} min-h-[80px]`;
 const errorMessageClasses = "text-xs text-error mt-1";
-
 const buttonBaseClasses = "py-2 px-4 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-150 uppercase tracking-wider";
 const buttonPrimaryClasses = `${buttonBaseClasses} bg-primary text-text-inverted border-primary hover:bg-tertiary hover:border-tertiary focus:ring-primary`;
 const buttonSecondaryClasses = `${buttonBaseClasses} bg-transparent text-tertiary border-tertiary hover:bg-tertiary hover:text-text-inverted focus:ring-tertiary`;
@@ -54,16 +52,18 @@ const buttonDangerClasses = `${buttonBaseClasses} bg-transparent text-error bord
 const buttonSmallClasses = "py-1 px-2 text-xs";
 
 const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCancelEdit }) => {
+    const [isEditing, setIsEditing] = useState(!!initialData);
+    
+    const getDefaultFormValues = () => ({
+        id: uuidv4(),
+        name: '',
+        description: '',
+        overallPrimaryStyle: '' as any,
+        instruments: [createDefaultInstrument()],
+    });
+
     const { register, control, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm<Musician>({
-        defaultValues: initialData 
-            ? JSON.parse(JSON.stringify(initialData)) 
-            : {
-                id: uuidv4(),
-                name: '',
-                description: '',
-                overallPrimaryStyle: undefined as MusicStyle | undefined,
-                instruments: [createDefaultInstrument()],
-            }
+        defaultValues: initialData || getDefaultFormValues()
     });
 
     const { fields, append, remove } = useFieldArray({
@@ -71,20 +71,39 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
         name: "instruments"
     });
 
-    const [isEditing, setIsEditing] = useState(!!initialData);
+    // ✅ 將所有 useEffect 移到組件層級，不在 map 循環中使用
+    const instrumentsWatch = watch("instruments");
 
+    // 處理音域自動填充 - 在組件層級處理所有樂器
+    useEffect(() => {
+        if (instrumentsWatch && instrumentsWatch.length > 0) {
+            instrumentsWatch.forEach((instrument, index) => {
+                if (instrument.role === 'vocalist' && 
+                    instrument.vocalRange && 
+                    instrument.vocalRange !== '' && 
+                    VOCAL_RANGE_NOTE_MAP[instrument.vocalRange as VocalRange]) {
+                    
+                    const { lowest, highest } = VOCAL_RANGE_NOTE_MAP[instrument.vocalRange as VocalRange];
+                    
+                    // 只在值實際不同時才更新，避免無限循環
+                    if (instrument.preciseLowestNote !== lowest) {
+                        setValue(`instruments.${index}.preciseLowestNote`, lowest);
+                    }
+                    if (instrument.preciseHighestNote !== highest) {
+                        setValue(`instruments.${index}.preciseHighestNote`, highest);
+                    }
+                }
+            });
+        }
+    }, [instrumentsWatch, setValue]);
+
+    // 處理初始資料
     useEffect(() => {
         if (initialData) {
-            reset(JSON.parse(JSON.stringify(initialData)));
+            reset(initialData);
             setIsEditing(true);
         } else {
-            reset({
-                id: uuidv4(),
-                name: '',
-                description: '',
-                overallPrimaryStyle: undefined as MusicStyle | undefined,
-                instruments: [createDefaultInstrument()],
-            });
+            reset(getDefaultFormValues());
             setIsEditing(false);
         }
     }, [initialData, reset]);
@@ -94,11 +113,12 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
             ...data,
             overallPrimaryStyle: (data.overallPrimaryStyle as string) === '' ? undefined : data.overallPrimaryStyle as MusicStyle | undefined,
             instruments: data.instruments.map(inst => {
-                const skillLevelFromForm = inst.skillLevel as unknown as number | undefined;
+                const skillLevelFromForm = inst.skillLevel as unknown as number | string | undefined;
                 return {
                     ...inst,
+                    role: inst.role as MusicianRole,
                     primaryStyle: (inst.primaryStyle as string) === '' ? undefined : inst.primaryStyle as MusicStyle | undefined,
-                    skillLevel: (skillLevelFromForm === undefined || isNaN(skillLevelFromForm)) ? undefined : skillLevelFromForm as SkillLevel,
+                    skillLevel: (skillLevelFromForm === undefined || skillLevelFromForm === '' || isNaN(Number(skillLevelFromForm))) ? undefined : Number(skillLevelFromForm) as SkillLevel,
                     vocalType: (inst.vocalType as string) === '' ? undefined : inst.vocalType as VocalType | undefined,
                     vocalRange: (inst.vocalRange as string) === '' ? undefined : inst.vocalRange as VocalRange | undefined,
                     preciseLowestNote: inst.preciseLowestNote?.trim() === '' ? undefined : inst.preciseLowestNote?.trim(),
@@ -106,19 +126,17 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                 };
             })
         };
+        
         onSubmit(processedData);
+        
         if (!isEditing) {
-            reset({
-                id: uuidv4(),
-                name: '',
-                description: '',
-                overallPrimaryStyle: undefined as MusicStyle | undefined,
-                instruments: [createDefaultInstrument()],
-            });
+            reset(getDefaultFormValues());
         }
     };
 
-    // const instrumentWatch = watch("instruments"); // Can be used if specific conditional logic based on all instruments array is needed
+    const handleAddInstrument = () => {
+        append(createDefaultInstrument());
+    };
 
     return (
         <form onSubmit={handleSubmit(localHandleSubmit)} className="space-y-6" noValidate>
@@ -159,7 +177,6 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                     {...register("overallPrimaryStyle")}
                     className={selectClasses}
                     autoComplete="musician-overall-style"
-                    defaultValue=""
                 >
                     <option value="">選擇風格</option>
                     {(Object.keys(MUSIC_STYLE_LABELS) as Array<keyof typeof MUSIC_STYLE_LABELS>).map(key => (
@@ -171,19 +188,11 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
             <h3 className="text-xl font-serif font-semibold text-secondary pt-4 border-b border-border-main pb-2 mb-6">
               樂器/角色專長
             </h3>
+            
             {fields.map((fieldItem, index) => {
                 const instrumentPath = `instruments.${index}` as const;
                 const currentRole = watch(`${instrumentPath}.role`);
-                const currentVocalRange = watch(`${instrumentPath}.vocalRange`);
                 const fieldIdPrefix = `instruments[${index}]`;
-                
-                useEffect(() => {
-                    if (currentRole === 'vocalist' && currentVocalRange && VOCAL_RANGE_NOTE_MAP[currentVocalRange as VocalRange]) {
-                        const { lowest, highest } = VOCAL_RANGE_NOTE_MAP[currentVocalRange as VocalRange];
-                        setValue(`${instrumentPath}.preciseLowestNote`, lowest, { shouldValidate: true, shouldDirty: true });
-                        setValue(`${instrumentPath}.preciseHighestNote`, highest, { shouldValidate: true, shouldDirty: true });
-                    }
-                }, [currentVocalRange, currentRole, index, setValue, instrumentPath]);
                 
                 return (
                     <div key={fieldItem.id} className="bg-card-slot/50 p-4 rounded-md space-y-4 mb-6 border border-border-main/50">
@@ -208,7 +217,6 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                                 className={`${selectClasses} ${errors.instruments?.[index]?.role ? 'border-error focus:border-error focus:ring-error' : ''}`}
                                 aria-invalid={errors.instruments?.[index]?.role ? "true" : "false"}
                                 autoComplete={`musician-instrument-${index}-role`}
-                                defaultValue=""
                             >
                                 <option value="">選擇角色</option>
                                 {(Object.keys(MUSICIAN_ROLE_LABELS) as Array<keyof typeof MUSICIAN_ROLE_LABELS>).map(key => (
@@ -227,7 +235,6 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                                         {...register(`${instrumentPath}.vocalType` as const)}
                                         className={selectClasses}
                                         autoComplete={`musician-instrument-${index}-vocal-type`}
-                                        defaultValue=""
                                     >
                                         <option value="">選擇性別</option>
                                         <option value="male">男</option>
@@ -241,7 +248,6 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                                         {...register(`${instrumentPath}.vocalRange` as const)}
                                         className={selectClasses}
                                         autoComplete={`musician-instrument-${index}-vocal-range`}
-                                        defaultValue=""
                                     >
                                         <option value="">選擇音域描述</option>
                                         {(Object.keys(VOCAL_RANGE_LABELS) as Array<keyof typeof VOCAL_RANGE_LABELS>).map(key => (
@@ -283,7 +289,6 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                                 {...register(`${instrumentPath}.primaryStyle` as const)}
                                 className={selectClasses}
                                 autoComplete={`musician-instrument-${index}-style`}
-                                defaultValue=""
                             >
                                 <option value="">選擇風格</option>
                                 {(Object.keys(MUSIC_STYLE_LABELS) as Array<keyof typeof MUSIC_STYLE_LABELS>).map(key => (
@@ -296,10 +301,9 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
                             <label htmlFor={`${fieldIdPrefix}.skillLevel`} className={labelClasses}>技能等級</label>
                             <select 
                                 id={`${fieldIdPrefix}.skillLevel`}
-                                {...register(`${instrumentPath}.skillLevel` as const, { valueAsNumber: true })}
+                                {...register(`${instrumentPath}.skillLevel` as const)}
                                 className={selectClasses}
                                 autoComplete={`musician-instrument-${index}-skill-level`}
-                                defaultValue=""
                             >
                                 <option value="">選擇等級</option>
                                 {SKILL_LEVEL_OPTIONS.map(option => (
@@ -371,7 +375,7 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
             <div className="pt-4">
                 <button 
                     type="button" 
-                    onClick={() => append(createDefaultInstrument())} 
+                    onClick={handleAddInstrument}
                     className={buttonSecondaryClasses}
                 >
                     新增樂器/專長
@@ -390,4 +394,4 @@ const MusicianForm: React.FC<MusicianFormProps> = ({ onSubmit, initialData, onCa
     );
 };
 
-export default MusicianForm; 
+export default MusicianForm;
